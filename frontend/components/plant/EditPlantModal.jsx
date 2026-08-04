@@ -1,18 +1,21 @@
 import { useCallback, useState } from 'react';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { FileUploader } from '../common/FileUploader';
 import { fileToBase64 } from '../../utils/media';
 import { resolveAppId } from '../../utils/firebase';
+import { getPlantsPath } from '../../utils/plants';
 
 const appId = resolveAppId();
 
-export const AddPlantModal = ({ firestore, userId, onClose }) => {
-  const [name, setName] = useState('');
-  const [species, setSpecies] = useState('');
-  const [wateringIntervalDays, setWateringIntervalDays] = useState('7');
-  const [previewImage, setPreviewImage] = useState(null);
+export const EditPlantModal = ({ firestore, userId, plant, onClose }) => {
+  const [name, setName] = useState(plant.name);
+  const [species, setSpecies] = useState(plant.species || '');
+  const [previewImage, setPreviewImage] = useState(plant.profileImageBase64 || null);
+  const [wateringIntervalDays, setWateringIntervalDays] = useState(
+    String(plant.wateringIntervalDays ?? 7),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,29 +39,25 @@ export const AddPlantModal = ({ firestore, userId, onClose }) => {
       setIsSaving(true);
 
       try {
-        const path = `/artifacts/${appId}/users/${userId}/plants`;
-        const now = Timestamp.now();
-        await addDoc(collection(firestore, path), {
+        await updateDoc(doc(firestore, getPlantsPath(appId, userId), plant.id), {
           name: name.trim(),
           species: species.trim(),
           profileImageBase64: previewImage,
           wateringIntervalDays: Number(wateringIntervalDays) || 7,
-          lastWateredAt: now,
-          createdAt: now,
         });
         onClose();
       } catch (saveError) {
-        console.error('Failed to add plant', saveError);
-        setError('We could not save your plant. Please try again.');
+        console.error('Failed to update plant', saveError);
+        setError('We could not save your changes. Please try again.');
       } finally {
         setIsSaving(false);
       }
     },
-    [firestore, name, onClose, previewImage, species, userId, wateringIntervalDays],
+    [firestore, name, onClose, plant.id, previewImage, species, userId, wateringIntervalDays],
   );
 
   return (
-    <Modal title="Add a new plant" onClose={onClose}>
+    <Modal title="Edit plant" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="block mb-1 text-sm font-semibold text-gray-700">Nickname</label>
@@ -121,7 +120,7 @@ export const AddPlantModal = ({ firestore, userId, onClose }) => {
                 <Loader2 size={18} className="mr-2 animate-spin" /> Saving
               </>
             ) : (
-              'Save plant'
+              'Save changes'
             )}
           </button>
         </div>
