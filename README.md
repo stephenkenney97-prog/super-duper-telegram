@@ -14,7 +14,10 @@ python3 -m venv .venv
 ```
 
 GitHub Actions runs these tests on pull requests and pushes to `main`.
-The test dependencies exercise the lightweight app fallback without Flask.
+The suite checks health and alert responses, static files, client-side route
+fallback, missing files, and request cleanup against both Flask and the
+lightweight fallback. Tests simulate a missing Flask dependency for fallback
+coverage and store generated files in temporary directories.
 
 ## market-seismograph.html
 
