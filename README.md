@@ -1,5 +1,21 @@
 # super-duper-telegram
 
+See [AGENTS.md](AGENTS.md) for project boundaries, development commands, and
+verification guidance, and [DESIGN.md](DESIGN.md) for UI conventions.
+
+## Python tests
+
+Use Python 3.12 and create a local test environment:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pytest tests/
+```
+
+GitHub Actions runs these tests on pull requests and pushes to `main`.
+The test dependencies exercise the lightweight app fallback without Flask.
+
 ## market-seismograph.html
 
 Live crypto price volatility rendered as P-wave / S-wave / Rayleigh-wave seismic
