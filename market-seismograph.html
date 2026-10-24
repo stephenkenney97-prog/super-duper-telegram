@@ -146,8 +146,27 @@
   }
 
   @media (max-width: 860px) {
-    #hud { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
-    .panel { max-width: none; }
+    html, body { height: auto; min-height: 100%; overflow: visible; }
+    #hud {
+      position: relative;
+      inset: auto;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+    }
+    .row-top, .row-bottom {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: stretch;
+    }
+    .row-mid { min-height: 24svh; }
+    .panel { width: 100%; min-width: 0; max-width: none; }
+    .data-row .value { min-width: 0; overflow-wrap: anywhere; }
+    .legend-row { align-items: flex-start; }
+    .swatch { margin-top: 2px; }
+    #disclaimer-row { min-width: 0; }
+    #disclaimer { width: 100%; overflow-wrap: anywhere; }
+    #orbit-hint { position: relative; bottom: auto; right: auto; padding: 0 14px 10px; text-align: right; }
   }
 </style>
 </head>
