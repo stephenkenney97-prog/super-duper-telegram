@@ -73,8 +73,14 @@ def plot_quakes(output=None):
                  f'{start:%Y-%m-%d %H:%M} – {end:%Y-%m-%d %H:%M} UTC\n'
                  'Bubble area scales with magnitude; neighboring waters included')
     if legend_lines:
-        fig.text(0.5, 0.015, '\n'.join(legend_lines), ha='center', va='bottom', fontsize=8)
-        fig.subplots_adjust(bottom=min(0.3, 0.08 + len(legend_lines) * 0.025))
+        legend_height = 0.5 + sum(len(line.splitlines()) for line in legend_lines) * 0.18
+        fig.set_size_inches(10, 12 + legend_height)
+        layout = fig.add_gridspec(2, 1, height_ratios=[12, legend_height], hspace=0.12)
+        ax.set_subplotspec(layout[0])
+        key = fig.add_subplot(layout[1])
+        key.axis('off')
+        key.text(0, 1, '\n'.join(legend_lines), ha='left', va='top',
+                 fontsize=8, linespacing=1.2, transform=key.transAxes)
     if output:
         fig.savefig(output, bbox_inches='tight', dpi=150)
         plt.close(fig)
