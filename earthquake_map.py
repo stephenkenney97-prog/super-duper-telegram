@@ -1,55 +1,102 @@
-"""Plot recent earthquakes in Japan using Cartopy."""
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+"""Plot USGS earthquakes in the Japan region during the preceding 24 hours."""
+import argparse
+from datetime import datetime, timedelta, timezone
+import json
+import textwrap
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
-# Expanded dataset with coordinates (approximate lat/lon from USGS/JMA data)
-quake_data = [
-    {"region": "Southern Ibaraki (Kanto)", "magnitude": 4.3, "lat": 36.0, "lon": 140.3, "depth": 50, "intensity": 4},
-    {"region": "Off Aomori (Tohoku)", "magnitude": 3.3, "lat": 40.9, "lon": 142.0, "depth": 20, "intensity": 1},
-    {"region": "Amami-Ōshima (Ryukyu)", "magnitude": 3.1, "lat": 28.4, "lon": 129.6, "depth": 10, "intensity": 1},
-    {"region": "Tokara Islands (Ryukyu)", "magnitude": 2.6, "lat": 29.3, "lon": 129.5, "depth": 10, "intensity": 1},
-    {"region": "Izu Islands (SE Honshu)", "magnitude": 4.5, "lat": 33.1, "lon": 139.5, "depth": 40, "intensity": 2},
-]
+USGS_URL = 'https://earthquake.usgs.gov/fdsnws/event/1/query'
 
-def plot_quakes():
-    """Create a bubble map of recent earthquakes in Japan."""
+
+def fetch_quakes(now=None, opener=urlopen):
+    """Return feed records and the exact UTC window; never substitute sample data."""
+    end = now or datetime.now(timezone.utc)
+    if end.tzinfo is None:
+        raise ValueError('now must be timezone-aware')
+    end = end.astimezone(timezone.utc)
+    start = end - timedelta(hours=24)
+    params = dict(format='geojson', starttime=start.isoformat(),
+                  endtime=end.isoformat(), minlatitude=24, maxlatitude=46,
+                  minlongitude=127, maxlongitude=146, orderby='time-asc', limit=20000)
+    with opener(USGS_URL + '?' + urlencode(params), timeout=30) as response:
+        payload = json.load(response)
+    if payload.get('type') != 'FeatureCollection' or not isinstance(payload.get('features'), list):
+        raise ValueError('USGS returned an invalid GeoJSON feature collection')
+    if len(payload['features']) >= 20000:
+        raise ValueError('USGS result limit reached; refusing to display a partial feed')
+    quakes = []
+    for feature in payload['features']:
+        properties = feature['properties']
+        coordinates = feature['geometry']['coordinates']
+        if properties.get('mag') is None:
+            continue
+        quakes.append(dict(region=properties.get('place') or 'Unnamed location',
+                           magnitude=properties['mag'], lon=coordinates[0],
+                           lat=coordinates[1], depth=coordinates[2],
+                           time=properties['time']))
+    return quakes, start, end
+
+
+def plot_quakes(output=None):
+    quakes, start, end = fetch_quakes()
+    import matplotlib.pyplot as plt
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+
     fig = plt.figure(figsize=(10, 12))
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent([127, 146, 24, 46], crs=ccrs.PlateCarree())
-
-    # Add features
     ax.add_feature(cfeature.LAND, facecolor='lightgray')
     ax.add_feature(cfeature.COASTLINE)
     ax.add_feature(cfeature.BORDERS, linestyle=':')
     ax.add_feature(cfeature.OCEAN, facecolor='lightblue')
     ax.gridlines(draw_labels=True)
+    legend_lines = []
+    coordinate_counts = {}
+    for number, quake in enumerate(quakes, start=1):
+        ax.scatter(quake['lon'], quake['lat'], s=max(1, quake['magnitude']) * 60,
+                   color='red', alpha=0.6, edgecolor='black', transform=ccrs.PlateCarree())
+        coordinate = (round(quake['lon'], 2), round(quake['lat'], 2))
+        offset = coordinate_counts.get(coordinate, 0) * 12
+        coordinate_counts[coordinate] = coordinate_counts.get(coordinate, 0) + 1
+        ax.annotate(str(number), (quake['lon'], quake['lat']), xytext=(0, offset),
+                    textcoords='offset points', color='white', weight='bold',
+                    ha='center', va='center', fontsize=7,
+                    transform=ccrs.PlateCarree())
+        label = f"{number}. M{quake['magnitude']} · {quake['region']} · depth {quake['depth']:.1f} km"
+        legend_lines.append(textwrap.fill(label, width=54, subsequent_indent='   '))
+    if not quakes:
+        ax.text(0.5, 0.5, 'No USGS events with reported magnitudes in this window',
+                ha='center', transform=ax.transAxes)
+    ax.set_title('Japan-region earthquakes · USGS\n'
+                 f'{start:%Y-%m-%d %H:%M} – {end:%Y-%m-%d %H:%M} UTC\n'
+                 'Bubble area scales with magnitude; neighboring waters included')
+    if legend_lines:
+        legend_height = 0.5 + sum(len(line.splitlines()) for line in legend_lines) * 0.18
+        fig.set_size_inches(10, 12 + legend_height)
+        layout = fig.add_gridspec(2, 1, height_ratios=[12, legend_height], hspace=0.12)
+        ax.set_subplotspec(layout[0])
+        key = fig.add_subplot(layout[1])
+        key.axis('off')
+        key.text(0, 1, '\n'.join(legend_lines), ha='left', va='top',
+                 fontsize=8, linespacing=1.2, transform=key.transAxes)
+    if output:
+        fig.savefig(output, bbox_inches='tight', dpi=150)
+        plt.close(fig)
+    else:
+        plt.show()
 
-    # Plot quakes
-    for quake in quake_data:
-        ax.scatter(
-            quake["lon"],
-            quake["lat"],
-            s=quake["magnitude"] * 60,
-            color='red',
-            alpha=0.6,
-            edgecolor='black',
-            transform=ccrs.PlateCarree(),
-        )
-        ax.text(
-            quake["lon"] + 0.2,
-            quake["lat"] + 0.2,
-            f"M{quake['magnitude']} ({quake['region']})",
-            fontsize=8,
-            transform=ccrs.PlateCarree(),
-        )
 
-    plt.title(
-        "Recent Earthquakes in Japan (last 24h)\n"
-        "Bubble size = Magnitude, Labels = Region",
-        fontsize=14,
-    )
-    plt.show()
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', help='Save a map image instead of opening a window')
+    args = parser.parse_args()
+    try:
+        plot_quakes(args.output)
+    except Exception as exc:
+        parser.exit(1, f'Earthquake map unavailable: {exc}\n')
 
-if __name__ == "__main__":
-    plot_quakes()
+
+if __name__ == '__main__':
+    main()

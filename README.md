@@ -1,5 +1,19 @@
 # super-duper-telegram
 
+## Project portfolio
+
+Run `python build_portfolio.py` with the sibling `gggggg` checkout present,
+then serve `dist/portfolio`. See [the launch guide](portfolio/README.md) for
+commands, project status, source downloads, and hosting notes.
+
+## Service and map status
+
+The alert-generation endpoint returns HTTP 503 and `status: not_configured`;
+no alert source or delivery integration exists yet. It no longer reports success.
+The Japan-region earthquake map now fetches the preceding 24 hours from USGS,
+labels the exact UTC interval, and fails explicitly if retrieval fails.
+Install `requirements-maps.txt` and use `python earthquake_map.py --output map.png`.
+
 See [AGENTS.md](AGENTS.md) for project boundaries, development commands, and
 verification guidance, and [DESIGN.md](DESIGN.md) for UI conventions.
 

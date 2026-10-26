@@ -48,16 +48,17 @@ def test_data_manager_stops_after_request(app_module, monkeypatch, method, path)
 
     client = flask_app.test_client()
     resp = getattr(client, method)(path)
-    assert resp.status_code == 200
+    assert resp.status_code == (503 if method == 'post' else 200)
     assert data_manager.started is False
 
 
-def test_alert_generation_placeholder(app_module):
+def test_unconfigured_alert_service_does_not_report_success(app_module):
     client = app_module.create_app().test_client()
     resp = client.post('/api/alerts/generate')
-    assert resp.status_code == 200
+    assert resp.status_code == 503
     assert resp.get_json() == {
-        'status': 'success',
+        'status': 'not_configured',
+        'error': 'Alert generation and delivery are not configured.',
         'alerts_generated': 0,
         'alerts_sent': 0,
     }
