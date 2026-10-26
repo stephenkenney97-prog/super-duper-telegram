@@ -139,6 +139,11 @@ except ModuleNotFoundError:  # pragma: no cover - exercised indirectly in tests
                 if len(result) > 2:
                     headers = result[2]
 
+            if isinstance(body, SimpleResponse):
+                body.status_code = status
+                if headers:
+                    body.headers.update(headers)
+                return body
             return SimpleResponse(body, status=status, headers=headers)
 
         def run(self, host: str = "127.0.0.1", port: int = 5000) -> None:  # pragma: no cover - manual usage only
@@ -197,8 +202,13 @@ def create_app():
 
     @app.route('/api/alerts/generate', methods=['POST'])
     def generate_and_send_alerts():
-        # Placeholder implementation: no real alerts are generated yet.
-        return jsonify({"status": "success", "alerts_generated": 0, "alerts_sent": 0})
+        # No source or delivery integration has been configured for this service.
+        return jsonify({
+            "status": "not_configured",
+            "error": "Alert generation and delivery are not configured.",
+            "alerts_generated": 0,
+            "alerts_sent": 0,
+        }), 503
 
     @app.route('/healthz')
     def health():
