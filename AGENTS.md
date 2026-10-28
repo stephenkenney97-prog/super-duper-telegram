@@ -5,7 +5,7 @@
 - Python setup: `python3 -m venv .venv` then `.venv/bin/python -m pip install -r requirements-dev.txt`; run tests with `.venv/bin/python -m pytest tests/` from this root.
 - `app.py` uses Flask when installed and a small fallback when absent; preserve `create_app()`, response contracts, static routing, and request teardown behavior.
 - The suite runs against both Flask and a simulated missing-Flask environment; keep both backends covered and use temporary directories for generated test files.
-- The alert-generation endpoint is a placeholder returning zero counts; inspect its implementation before assuming any external alert integration exists.
+- The alert-generation endpoint returns HTTP 503 with `status: not_configured`; inspect its implementation before assuming any external alert integration exists.
 - Standalone demo preview: `python3 -m http.server 8000 --bind 127.0.0.1`, then open `/market-seismograph.html`; no build step or API key is needed.
 - Preserve the demo's Coinbase → CoinGecko → simulated-feed fallback, visible source mode, and artistic-visualization disclaimer.
 - Its Three.js core and OrbitControls use `0.128.0`; verify version-specific APIs and keep CDN versions compatible.
