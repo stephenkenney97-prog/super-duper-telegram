@@ -6,6 +6,11 @@ export const fileToBase64 = (file) =>
     reader.onerror = (error) => reject(error);
   });
 
+export const getMimeTypeFromDataUrl = (dataUrl, fallback = 'image/jpeg') => {
+  const match = typeof dataUrl === 'string' ? dataUrl.match(/^data:([^;,]+)/) : null;
+  return match ? match[1] : fallback;
+};
+
 export const formatTimestamp = (timestamp) => {
   if (!timestamp?.toDate) {
     return 'Just now';
