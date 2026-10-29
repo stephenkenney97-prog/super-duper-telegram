@@ -46,7 +46,9 @@ or schema compatibility. No claim of a passed real-host test is made.
 
 Before PR #3 merges, run the same UI sequence in its actual configured host,
 confirm cloud persistence and health-log cascade, and get a real successful PNG
-Gemini response. The hardcoded model in frontend/utils/ai.js remains unchanged.
+Gemini response. The model in frontend/utils/ai.js is Gemini 3.5 Flash-Lite; the former
+preview model was shut down. Real model availability and schema compatibility
+still require a successful live request.
 Do not put real keys into this harness: it always uses aliases and fixtures.
 Live integration should be configured separately with Firebase rules and a
 server-side Gemini credential; browser-exposed keys require deliberate controls.
